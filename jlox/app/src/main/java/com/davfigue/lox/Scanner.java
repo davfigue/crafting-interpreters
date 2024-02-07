@@ -90,10 +90,57 @@ class Scanner {
             case '\n':
                 line++;
                 break;
+            case '"':
+                string();
+                break;
             default:
-                Lox.error(line, "Unexpected character.");
+                // Adding number literals scanning on the default case seems easier
+                if (isDigit(c)) {
+                    number();
+                } else {
+                    Lox.error(line, "Unexpected character.");
+                }
                 break;
         }
+    }
+
+    private void number() {
+        while (isDigit(peek())) {
+            advance();
+        }
+
+        // Looks for a fractional part
+        if (peek() == '.' && isDigit(peekNext())) {
+            // Consumes the .
+            advance();
+
+            while (isDigit(peek())) {
+                advance();
+            }
+        }
+
+        addToken(NUMBER, Double.parseDouble(source.substring(start, current)));
+    }
+
+    private void string() {
+        while (peek() != '"' && !isAtEnd()) {
+            if (peek() == '\n') {
+                line++;
+            }
+            advance();
+        }
+
+        if (isAtEnd()) {
+            Lox.error(line, "Unterminated string.");
+            return;
+        }
+
+        // The closing ".
+        advance();
+
+        // Trimming the surrounding quotes
+        String value = source.substring(start + 1, current - 1);
+        addToken(STRING, value);
     }
 
     private boolean match(char expected) {
@@ -116,6 +163,18 @@ class Scanner {
         }
 
         return source.charAt(current);
+    }
+
+    private char peekNext() {
+        if (current + 1 >= source.length()) {
+            return '\0';
+        }
+
+        return source.charAt(current + 1);
+    }
+
+    private boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
     }
 
     private boolean isAtEnd() {
