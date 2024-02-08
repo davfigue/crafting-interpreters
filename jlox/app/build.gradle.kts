@@ -33,3 +33,9 @@ tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
 }
+
+// Run like: ./gradlew generateAst --args=$(pwd)/app/src/main/java/com/davfigue/lox
+tasks.register<JavaExec>("generateAst") {
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("com.davfigue.tool.GenerateAst")
+}
