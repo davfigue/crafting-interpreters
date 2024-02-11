@@ -3,6 +3,7 @@ package com.davfigue.lox;
 import static com.davfigue.lox.TokenType.*;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 class Parser {
     private static class ParseError extends RuntimeException {
@@ -28,53 +29,22 @@ class Parser {
     }
 
     private Expr equality() {
-        Expr expr = comparison();
-
-        while (match(BANG_EQUAL, EQUAL_EQUAL)) {
-            Token operator = previous();
-            Expr right = comparison();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
+        return leftBinaryExpr(this::comparison, BANG_EQUAL, EQUAL_EQUAL);
     }
 
     private Expr comparison() {
-        Expr expr = term();
-
-        while (match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL)) {
-            Token operator = previous();
-            Expr right = term();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
+        return leftBinaryExpr(this::term, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL);
     }
 
     private Expr term() {
-        Expr expr = factor();
-
-        while (match(MINUS, PLUS)) {
-            Token operator = previous();
-            Expr right = factor();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
+        return leftBinaryExpr(this::factor, MINUS, PLUS);
     }
 
     private Expr factor() {
-        Expr expr = unary();
-
-        while (match(SLASH, STAR)) {
-            Token operator = previous();
-            Expr right = unary();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
+        return leftBinaryExpr(this::unary, SLASH, STAR);
     }
 
+    /** Unary is right-associative */
     private Expr unary() {
         if (match(BANG, MINUS)) {
             Token operator = previous();
@@ -106,6 +76,22 @@ class Parser {
         }
 
         throw error(peek(), "Expect expression");
+    }
+
+    /**
+     * Returns a left-associative binary expression matching token types
+     * and calling a expression method which should be of higher precedence
+     */
+    private Expr leftBinaryExpr(Supplier<Expr> method, TokenType... types) {
+        Expr expr = method.get();
+
+        while (match(types)) {
+            Token operator = previous();
+            Expr right = method.get();
+            expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
     }
 
     private boolean match(TokenType... types) {
