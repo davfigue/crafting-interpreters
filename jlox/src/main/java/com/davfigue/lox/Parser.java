@@ -80,7 +80,7 @@ class Parser {
 
     /**
      * Returns a left-associative binary expression matching token types
-     * and calling a expression method which should be of higher precedence
+     * and calling a expression method which should be of higher precedenc
      */
     private Expr leftBinaryExpr(Supplier<Expr> method, TokenType... types) {
         Expr expr = method.get();
