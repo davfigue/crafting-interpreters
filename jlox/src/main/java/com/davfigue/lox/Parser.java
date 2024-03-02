@@ -20,13 +20,65 @@ class Parser {
     List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(statement());
+            statements.add(declaration());
         }
         return statements;
     }
 
     private Expr expression() {
-        return equality();
+        return assignment();
+    }
+
+    /**
+     * Parses assignment expressions. Assignments are tricky due to
+     * their left-value (l-value) nature and right-hand associativity.
+     *
+     * The parser first parses the left-hand side of the assignment, and if it
+     * encounters an equal sign ('='), it then recursively parses the right-hand
+     * side.
+     *
+     * Before constructing the assignment expression node, the parser verifies
+     * whether the left-hand side is a valid assignment target. This process
+     * involves converting the right-hand side expression node into an l-value
+     * representation.
+     *
+     * This approach works because every assignment target also conforms to the
+     * syntax of a normal expression.
+     *
+     * Example:
+     * {@code newPoint(x + 2, 0).y = 3;}
+     */
+    private Expr assignment() {
+        Expr expr = equality();
+
+        if (match(EQUAL)) {
+            Token equals = previous();
+            Expr value = assignment();
+
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable) expr).name;
+
+                return new Expr.Assign(name, value);
+            }
+
+            error(equals, "Invalid assignment target.");
+        }
+
+        return expr;
+    }
+
+    private Stmt declaration() {
+        try {
+            if (match(VAR)) {
+                return varDeclaration();
+            }
+
+            return statement();
+        } catch (ParseError error) {
+            synchronize();
+
+            return null;
+        }
     }
 
     private Stmt statement() {
@@ -40,6 +92,20 @@ class Parser {
         Expr value = expression();
         consume(SEMICOLON, "Expect ';' after value.");
         return new Stmt.Print(value);
+    }
+
+    private Stmt varDeclaration() {
+        Token name = consume(IDENTIFIER, "Expect variable name.");
+
+        Expr initializer = null;
+
+        if (match(EQUAL)) {
+            initializer = expression();
+        }
+
+        consume(SEMICOLON, "Expect ';' after variable declaration.");
+
+        return new Stmt.Var(name, initializer);
     }
 
     private Stmt expressionStatement() {
@@ -88,6 +154,9 @@ class Parser {
         }
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
+        }
+        if (match(IDENTIFIER)) {
+            return new Expr.Variable(previous());
         }
         if (match(LEFT_PAREN)) {
             Expr expr = expression();
