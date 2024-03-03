@@ -51,4 +51,9 @@ public class AstPrinter implements Expr.Visitor<String> {
     public String visitAssignExpr(Expr.Assign expr) {
         return paranthesize("= " + expr.name.lexeme, expr.value);
     }
+
+    @Override
+    public String visitLogicalExpr(Expr.Logical expr) {
+        return paranthesize(expr.operator.lexeme, expr.left, expr.right);
+    }
 }
