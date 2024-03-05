@@ -1,5 +1,7 @@
 package com.davfigue.lox;
 
+import com.davfigue.lox.Expr.Call;
+
 public class AstPrinter implements Expr.Visitor<String> {
     String print(Expr expr) {
         return expr.accept(this);
@@ -55,5 +57,10 @@ public class AstPrinter implements Expr.Visitor<String> {
     @Override
     public String visitLogicalExpr(Expr.Logical expr) {
         return paranthesize(expr.operator.lexeme, expr.left, expr.right);
+    }
+
+    @Override
+    public String visitCallExpr(Call expr) {
+        return paranthesize("fn", (Expr[]) expr.arguments.toArray());
     }
 }
